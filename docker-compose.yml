@@ -1,0 +1,71 @@
+version: '3.8'
+
+name: 'imports-performance'
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    ports:
+      - '3306:3306'
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - private-network
+
+  backend:
+    container_name: nest-backend
+    build:
+      context: ./importsperfomance-api
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mysql
+    env_file:
+      - ./importsperfomance-api/.env
+    volumes:
+      - ./importsperfomance-api:/usr/src/backend
+      - backend_node_modules:/usr/src/backend/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - CHOKIDAR_INTERVAL=100
+      - WATCHPACK_POLLING=true
+      - NODE_ENV=development
+    networks:
+      - public-network
+      - private-network
+
+  frontend:
+    build:
+      context: ./imports-performance-ui
+    container_name: react-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - NODE_ENV="development"
+      - WATCHPACK_POLLING=true
+      - HOST=0.0.0.0
+    depends_on:
+      - backend
+    env_file:
+      - ./imports-performance-ui/.env
+    volumes:
+      - ./imports-performance-ui:/usr/src/frontend
+      - /usr/src/frontend/node_modules
+    networks:
+      - public-network
+
+networks:
+  public-network:
+    driver: bridge
+  private-network:
+    driver: bridge
+
+volumes:
+  db_data:
+  backend_node_modules:
